@@ -4,6 +4,7 @@ from django.db import models
 class CustomUser(AbstractUser):
     bio = models.TextField(blank=True, null=True)
     profile_picture = models.ImageField(upload_to="profile_pics/", blank=True, null=True)
+    email = models.EmailField(unique=True)
 
     def __str__(self):
         return self.username
