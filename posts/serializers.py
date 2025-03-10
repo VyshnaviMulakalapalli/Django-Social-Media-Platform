@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Post, Like, Comment, Follow
+from .models import Post, Like, Comment, Follow, Notification
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -36,3 +36,13 @@ class FollowSerializer(serializers.ModelSerializer):
         model = Follow
         fields = ["id", "follower", "following", "created_at"]
         read_only_fields = ["follower"]
+        
+class NotificationSerializer(serializers.ModelSerializer):
+    sender_username = serializers.CharField(source='sender.username')
+    post_caption = serializers.CharField(source='post.caption', allow_null=True)
+    comment_text = serializers.CharField(source='comment.text', allow_null=True)
+
+    class Meta:
+        model = Notification
+        fields = ['id', 'sender_username', 'type', 'post_caption', 'comment_text', 'created_at', 'read']
+
