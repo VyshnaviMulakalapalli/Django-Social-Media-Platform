@@ -1,8 +1,8 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from .models import Post, Like, Comment, Follow
-from .serializers import PostSerializer, LikeSerializer, CommentSerializer, FollowSerializer
+from .models import Post, Like, Comment, Follow, Notification
+from .serializers import PostSerializer, LikeSerializer, CommentSerializer, FollowSerializer, NotificationSerializer
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -35,6 +35,12 @@ class LikePostView(generics.GenericAPIView):
             like.delete()
             return Response({"message": "Unliked"}, status=200)
         
+        Notification.objects.create(
+            recipient=post.user,
+            sender=request.user,
+            type='like',
+            post=post
+        )
         return Response({"message": "Liked"}, status=201)
 
 # List Comments on a Post
@@ -48,7 +54,16 @@ class CommentListView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         post = get_object_or_404(Post, id=self.kwargs["post_id"])
-        serializer.save(user=self.request.user, post=post)
+        comment = serializer.save(user=self.request.user, post=post)
+
+        # Create notification for comment
+        Notification.objects.create(
+            recipient=post.user,
+            sender=self.request.user,
+            type='comment',
+            post=post,
+            comment=comment
+        )
 
 class FollowUserView(generics.GenericAPIView):
     serializer_class = FollowSerializer
@@ -65,6 +80,11 @@ class FollowUserView(generics.GenericAPIView):
             follow.delete()
             return Response({"message": "Unfollowed"}, status=status.HTTP_200_OK)
 
+        Notification.objects.create(
+            recipient=following_user,
+            sender=request.user,
+            type='follow'
+        )
         return Response({"message": "Followed"}, status=status.HTTP_201_CREATED)
 
 class FollowerListView(generics.ListAPIView):
@@ -91,3 +111,23 @@ class NewsfeedView(generics.ListAPIView):
     def get_queryset(self):
         followed_users = Follow.objects.filter(follower=self.request.user).values_list("following", flat=True)
         return Post.objects.filter(user__id__in=followed_users).order_by("-created_at")
+    
+class NotificationListView(generics.ListAPIView):
+    queryset = Notification.objects.all()
+    serializer_class = NotificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Notification.objects.filter(recipient=self.request.user).order_by('-created_at')
+
+class MarkNotificationReadView(generics.UpdateAPIView):
+    queryset = Notification.objects.all()
+    serializer_class = NotificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request, pk):
+        notification = get_object_or_404(Notification, pk=pk, recipient=request.user)
+        notification.read = True
+        notification.save()
+        return Response({"message": "Notification marked as read"}, status=status.HTTP_200_OK)
+

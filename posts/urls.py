@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import PostListCreateView, PostDetailView, LikePostView, CommentListView, FollowUserView, FollowerListView, NewsfeedView, FollowingListView
+from .views import PostListCreateView, PostDetailView, LikePostView, CommentListView, FollowUserView, FollowerListView, NewsfeedView, FollowingListView, NotificationListView, MarkNotificationReadView
 
 urlpatterns = [
     path("", PostListCreateView.as_view(), name="post-list-create"),
@@ -10,4 +10,6 @@ urlpatterns = [
     path("<int:user_id>/followers/", FollowerListView.as_view(), name="follower-list"),
     path("<int:user_id>/following/", FollowingListView.as_view(), name="following-list"),
     path("newsfeed/", NewsfeedView.as_view(), name="newsfeed"),
+    path("notifications/", NotificationListView.as_view(), name="notification-list"),
+    path("notifications/<int:pk>/read/", MarkNotificationReadView.as_view(), name="mark-notification-read"),
 ]
